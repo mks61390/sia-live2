@@ -50,6 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     rankedListings,
+    allListings,
     alertEnabled: (profile?.alert_enabled as boolean) ?? false,
     savedIds,
   };
@@ -180,7 +181,7 @@ function AlertBanner() {
 }
 
 export default function Browse() {
-  const { rankedListings, alertEnabled, savedIds } = useLoaderData<typeof loader>();
+  const { rankedListings, allListings, alertEnabled, savedIds } = useLoaderData<typeof loader>();
   const savedSet = new Set(savedIds);
 
   return (
@@ -190,18 +191,30 @@ export default function Browse() {
         {!alertEnabled && <AlertBanner />}
 
         {rankedListings.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-10 text-center">
-            <p className="text-lg font-medium">No listings match your current preferences</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Try broadening your budget, bedroom count, or neighborhoods.
-            </p>
-            <Link
-              to="/interview"
-              className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
-            >
-              Update preferences →
-            </Link>
-          </div>
+          <>
+            <div className="rounded-xl border border-border bg-card p-6 text-center">
+              <p className="text-lg font-medium">No listings match your current preferences</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Try broadening your budget, bedroom count, or neighborhoods.
+              </p>
+              <Link
+                to="/interview"
+                className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+              >
+                Update preferences →
+              </Link>
+            </div>
+            {allListings.length > 0 && (
+              <div>
+                <p className="mb-4 text-sm font-medium text-muted-foreground">All available listings</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {allListings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} savedIds={savedSet} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {rankedListings.map((listing) => (
