@@ -17,16 +17,16 @@ import type { ListingRow, TenantProfile } from "./matchingEngine";
 function makeListing(overrides: Partial<ListingRow> = {}): ListingRow {
   return {
     id: "listing-1",
-    source_url: "https://yad2.co.il/item/1",
+    external_url: "https://yad2.co.il/item/1",
     title: "Nice apartment",
-    price: 6000,
+    price_ils: 6000,
     bedrooms: 2,
-    area_sqm: 65,
+    sqm: 65,
     neighborhood: "Florentin",
-    photos: [],
-    is_stale: false,
-    geo_enrichment: null,
-    last_seen_at: "2026-05-01T10:00:00Z",
+    image_urls: [],
+    is_agency: false,
+    amenities: null,
+    scraped_at: "2026-05-01T10:00:00Z",
     ...overrides,
   };
 }
@@ -40,9 +40,9 @@ beforeEach(() => {
 describe("hardFilter", () => {
   it("excludes listings where price exceeds budget_max", () => {
     const listings = [
-      makeListing({ id: "1", price: 5000 }),
-      makeListing({ id: "2", price: 8000 }),
-      makeListing({ id: "3", price: 7000 }),
+      makeListing({ id: "1", price_ils: 5000 }),
+      makeListing({ id: "2", price_ils: 8000 }),
+      makeListing({ id: "3", price_ils: 7000 }),
     ];
     const profile: TenantProfile = { budget_max: 7000 };
     const result = hardFilter(listings, profile);
@@ -51,15 +51,15 @@ describe("hardFilter", () => {
 
   it("includes listings when budget_max is null", () => {
     const listings = [
-      makeListing({ id: "1", price: 5000 }),
-      makeListing({ id: "2", price: 20000 }),
+      makeListing({ id: "1", price_ils: 5000 }),
+      makeListing({ id: "2", price_ils: 20000 }),
     ];
     const result = hardFilter(listings, { budget_max: null });
     expect(result).toHaveLength(2);
   });
 
   it("includes listings when listing price is null", () => {
-    const listings = [makeListing({ id: "1", price: null })];
+    const listings = [makeListing({ id: "1", price_ils: null })];
     const result = hardFilter(listings, { budget_max: 7000 });
     expect(result).toHaveLength(1);
   });
@@ -112,10 +112,10 @@ describe("hardFilter", () => {
 
   it("applies all three filters simultaneously", () => {
     const listings = [
-      makeListing({ id: "pass", price: 6000, bedrooms: 2, neighborhood: "Florentin" }),
-      makeListing({ id: "fail-budget", price: 9000, bedrooms: 2, neighborhood: "Florentin" }),
-      makeListing({ id: "fail-beds", price: 6000, bedrooms: 3, neighborhood: "Florentin" }),
-      makeListing({ id: "fail-hood", price: 6000, bedrooms: 2, neighborhood: "Jaffa" }),
+      makeListing({ id: "pass", price_ils: 6000, bedrooms: 2, neighborhood: "Florentin" }),
+      makeListing({ id: "fail-budget", price_ils: 9000, bedrooms: 2, neighborhood: "Florentin" }),
+      makeListing({ id: "fail-beds", price_ils: 6000, bedrooms: 3, neighborhood: "Florentin" }),
+      makeListing({ id: "fail-hood", price_ils: 6000, bedrooms: 2, neighborhood: "Jaffa" }),
     ];
     const result = hardFilter(listings, {
       budget_max: 7000,
@@ -193,13 +193,12 @@ describe("rankWithAI", () => {
   });
 
   it("preserves all original listing fields on ranked output", async () => {
-    const listing = makeListing({ id: "1", price: 5500, photos: ["photo.jpg"] });
+    const listing = makeListing({ id: "1", price_ils: 5500, image_urls: ["photo.jpg"] });
     mockAIResponse([{ id: "1", match_explanation: "Perfect fit." }]);
 
     const result = await rankWithAI([listing], {});
-    expect(result[0].price).toBe(5500);
-    expect(result[0].photos).toEqual(["photo.jpg"]);
-    expect(result[0].is_stale).toBe(false);
+    expect(result[0].price_ils).toBe(5500);
+    expect(result[0].image_urls).toEqual(["photo.jpg"]);
   });
 
   it("sends lifestyle signals in the user message to OpenAI", async () => {

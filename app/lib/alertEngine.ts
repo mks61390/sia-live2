@@ -16,7 +16,7 @@ async function sendAlertEmail(
   const appUrl = process.env.APP_URL ?? "https://olim.app";
   const listingUrl = `${appUrl}/listings/${listing.id}`;
 
-  const price = listing.price != null ? `₪${listing.price.toLocaleString()}/mo` : "Price on request";
+  const price = listing.price_ils != null ? `₪${listing.price_ils.toLocaleString()}/mo` : "Price on request";
   const summary = [listing.title, price, listing.neighborhood].filter(Boolean).join(" · ");
 
   await fetch("https://api.resend.com/emails", {

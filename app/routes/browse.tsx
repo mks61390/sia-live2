@@ -27,8 +27,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { data: listingRows } = await supabase
     .from("listings")
     .select(
-      "id, source_url, title, price, bedrooms, area_sqm, neighborhood, photos, is_stale, geo_enrichment, last_seen_at"
-    );
+      "id, external_url, title, price_ils, bedrooms, sqm, neighborhood, image_urls, amenities, scraped_at"
+    )
+    .eq("status", "published");
 
   const { data: savedRows } = await supabase
     .from("saved_listings")
@@ -112,7 +113,7 @@ function SaveButton({ listingId, isSaved }: { listingId: string; isSaved: boolea
 }
 
 function ListingCard({ listing, savedIds }: { listing: RankedListing; savedIds: Set<string> }) {
-  const photo = listing.photos?.[0];
+  const photo = listing.image_urls?.[0];
   return (
     <div className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       <Link
@@ -135,12 +136,12 @@ function ListingCard({ listing, savedIds }: { listing: RankedListing; savedIds: 
         <div className="p-4 space-y-2">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-lg font-semibold">
-              {listing.price != null ? `₪${listing.price.toLocaleString()}/mo` : "Price on request"}
+              {listing.price_ils != null ? `₪${listing.price_ils.toLocaleString()}/mo` : "Price on request"}
             </span>
             <span className="text-sm text-muted-foreground">
               {[
                 listing.bedrooms != null ? `${listing.bedrooms} bed` : null,
-                listing.area_sqm != null ? `${listing.area_sqm}m²` : null,
+                listing.sqm != null ? `${listing.sqm}m²` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}

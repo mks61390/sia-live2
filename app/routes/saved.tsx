@@ -35,14 +35,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 function SavedCard({ listing }: { listing: ListingRow }) {
-  const photo = listing.photos?.[0];
+  const photo = listing.image_urls?.[0];
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      {listing.is_stale && (
-        <div className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-xs text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
-          This listing may no longer be available
-        </div>
-      )}
       <Link
         to={`/listings/${listing.id}`}
         className="group block transition-shadow hover:shadow-md"
@@ -63,12 +58,12 @@ function SavedCard({ listing }: { listing: ListingRow }) {
         <div className="p-4 space-y-2">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-lg font-semibold">
-              {listing.price != null ? `₪${listing.price.toLocaleString()}/mo` : "Price on request"}
+              {listing.price_ils != null ? `₪${listing.price_ils.toLocaleString()}/mo` : "Price on request"}
             </span>
             <span className="text-sm text-muted-foreground">
               {[
                 listing.bedrooms != null ? `${listing.bedrooms} bed` : null,
-                listing.area_sqm != null ? `${listing.area_sqm}m²` : null,
+                listing.sqm != null ? `${listing.sqm}m²` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}

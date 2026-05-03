@@ -7,11 +7,11 @@ vi.mock("~/lib/session", () => ({
 }));
 
 vi.mock("~/lib/supabase.server", () => ({
-  createSupabaseServer: vi.fn(),
+  createSupabaseServiceServer: vi.fn(),
 }));
 
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { loader, action } from "./listings.$id";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -66,17 +66,17 @@ function makeSupabaseMock(
 
 const MOCK_LISTING = {
   id: "listing-1",
-  source_url: "https://yad2.co.il/item/1",
+  external_url: "https://yad2.co.il/item/1",
   title: "Nice apartment",
   description: "Spacious 2BR in Florentin with natural light",
-  price: 6000,
+  price_ils: 6000,
   bedrooms: 2,
-  area_sqm: 65,
+  sqm: 65,
   neighborhood: "Florentin",
-  photos: ["https://example.com/photo.jpg"],
-  is_stale: false,
-  geo_enrichment: null,
-  last_seen_at: "2026-05-01T10:00:00Z",
+  image_urls: ["https://example.com/photo.jpg"],
+  is_agency: false,
+  amenities: null,
+  scraped_at: "2026-05-01T10:00:00Z",
   published_at: "2026-04-01T10:00:00Z",
 };
 
@@ -98,43 +98,43 @@ describe("loader", () => {
   it("returns listing data for a valid ID", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase } = makeSupabaseMock(MOCK_LISTING);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs("listing-1") as Parameters<typeof loader>[0]);
     expect(result.listing.id).toBe("listing-1");
-    expect(result.listing.price).toBe(6000);
+    expect(result.listing.price_ils).toBe(6000);
     expect(result.listing.neighborhood).toBe("Florentin");
   });
 
   it("throws 404 when listing is not found", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase } = makeSupabaseMock(null);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     await expect(
       loader(makeArgs("missing-id") as Parameters<typeof loader>[0])
     ).rejects.toMatchObject({ status: 404 });
   });
 
-  it("returns listing with geo_enrichment null without crashing", async () => {
+  it("returns listing with amenities null without crashing", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
-    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, geo_enrichment: null });
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, amenities: null });
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
-    expect(result.listing.geo_enrichment).toBeNull();
+    expect(result.listing.amenities).toBeNull();
   });
 
-  it("returns listing with is_stale=true for stale listings", async () => {
+  it("returns is_agency=true for agency listings", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
-    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, is_stale: true });
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, is_agency: true });
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
-    expect(result.listing.is_stale).toBe(true);
+    expect(result.listing.is_agency).toBe(true);
   });
 
-  it("returns geo_enrichment data when present", async () => {
+  it("returns amenities data when present", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const enrichment = {
       parks: [{ name: "HaYarkon Park", distance: 350 }],
@@ -145,17 +145,17 @@ describe("loader", () => {
       pharmacies: [],
       bus_stops: [{ name: "Dizengoff St", distance: 80 }],
     };
-    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, geo_enrichment: enrichment });
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    const { supabase } = makeSupabaseMock({ ...MOCK_LISTING, amenities: enrichment });
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
-    expect(result.listing.geo_enrichment).toEqual(enrichment);
+    expect(result.listing.amenities).toEqual(enrichment);
   });
 
   it("returns isSaved=true when listing is in saved_listings", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase } = makeSupabaseMock(MOCK_LISTING, [{ listing_id: "listing-1" }]);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs("listing-1") as Parameters<typeof loader>[0]);
     expect(result.isSaved).toBe(true);
@@ -164,7 +164,7 @@ describe("loader", () => {
   it("returns isSaved=false when listing is not in saved_listings", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase } = makeSupabaseMock(MOCK_LISTING, []);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs("listing-1") as Parameters<typeof loader>[0]);
     expect(result.isSaved).toBe(false);
@@ -185,7 +185,7 @@ describe("action", () => {
   it("inserts into saved_listings when intent=save", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase, savedUpsertFn } = makeSupabaseMock(MOCK_LISTING);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await action(
       makeActionArgs("listing-1", { intent: "save" }) as Parameters<typeof action>[0]
@@ -200,7 +200,7 @@ describe("action", () => {
   it("deletes from saved_listings when intent=unsave", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase, savedDeleteMatchFn } = makeSupabaseMock(MOCK_LISTING);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await action(
       makeActionArgs("listing-1", { intent: "unsave" }) as Parameters<typeof action>[0]

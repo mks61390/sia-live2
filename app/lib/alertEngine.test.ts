@@ -52,16 +52,16 @@ function makeSupabaseMock(opts: {
 
 const LISTING: ListingRow = {
   id: "listing-1",
-  source_url: "https://yad2.co.il/item/1",
+  external_url: "https://yad2.co.il/item/1",
   title: "3BR in Florentin",
-  price: 8000,
+  price_ils: 8000,
   bedrooms: 3,
-  area_sqm: 80,
+  sqm: 80,
   neighborhood: "Florentin",
-  photos: [],
-  is_stale: false,
-  geo_enrichment: null,
-  last_seen_at: "2026-05-03T00:00:00Z",
+  image_urls: [],
+  is_agency: false,
+  amenities: null,
+  scraped_at: "2026-05-03T00:00:00Z",
 };
 
 const MATCHING_PROFILE = {

@@ -33,7 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   );
 
   return {
-    listing: data as ListingRow & { description: string | null; published_at: string | null },
+    listing: data as ListingRow & { description: string | null; published_at: string | null; scraped_at: string | null; external_url: string | null; is_agency: boolean | null },
     isSaved,
   };
 }
@@ -99,7 +99,7 @@ function formatDate(iso: string) {
 
 export default function ListingDetail() {
   const { listing, isSaved } = useLoaderData<typeof loader>();
-  const geo = listing.geo_enrichment as unknown as GeoEnrichment | null;
+  const geo = listing.amenities as unknown as GeoEnrichment | null;
   const fetcher = useFetcher();
 
   const optimisticSaved =
@@ -114,18 +114,11 @@ export default function ListingDetail() {
     <div>
       <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 pt-6 sm:px-6">
 
-        {/* Stale warning */}
-        {listing.is_stale && (
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
-            This listing may no longer be available — verify on Yad2 before reaching out
-          </div>
-        )}
-
         {/* Photo gallery */}
-        {listing.photos && listing.photos.length > 0 ? (
+        {listing.image_urls && listing.image_urls.length > 0 ? (
           <div className="overflow-x-auto">
             <div className="flex gap-3" style={{ width: "max-content" }}>
-              {listing.photos.map((src, i) => (
+              {listing.image_urls.map((src, i) => (
                 <div key={i} className="aspect-video w-80 shrink-0 overflow-hidden rounded-xl bg-muted sm:w-96">
                   <img
                     src={src}
@@ -148,13 +141,13 @@ export default function ListingDetail() {
             <h1 className="text-xl font-semibold sm:text-2xl">{listing.title}</h1>
           )}
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {listing.price != null && (
-              <span className="text-2xl font-bold">₪{listing.price.toLocaleString()}/mo</span>
+            {listing.price_ils != null && (
+              <span className="text-2xl font-bold">₪{listing.price_ils!.toLocaleString()}/mo</span>
             )}
             <span className="text-muted-foreground text-sm">
               {[
                 listing.bedrooms != null ? `${listing.bedrooms} bed` : null,
-                listing.area_sqm != null ? `${listing.area_sqm} m²` : null,
+                listing.sqm != null ? `${listing.sqm} m²` : null,
                 listing.neighborhood ?? null,
               ]
                 .filter(Boolean)
@@ -200,20 +193,24 @@ export default function ListingDetail() {
         )}
 
         {/* Metadata */}
-        <p className="text-xs text-muted-foreground">
-          Last seen on Yad2: {formatDate(listing.last_seen_at)}
-        </p>
+        {(listing.scraped_at ?? listing.published_at) && (
+          <p className="text-xs text-muted-foreground">
+            Last seen on Yad2: {formatDate((listing.scraped_at ?? listing.published_at)!)}
+          </p>
+        )}
 
         {/* Action buttons */}
         <div className="flex flex-col gap-3 sm:flex-row">
-          <a
-            href={listing.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            View on Yad2
-          </a>
+          {listing.external_url && (
+            <a
+              href={listing.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              View on Yad2
+            </a>
+          )}
           <fetcher.Form method="post" className="flex-1">
             <button
               type="submit"

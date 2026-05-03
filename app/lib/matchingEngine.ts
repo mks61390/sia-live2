@@ -2,16 +2,16 @@ import OpenAI from "openai";
 
 export type ListingRow = {
   id: string;
-  source_url: string;
+  external_url: string | null;
   title: string | null;
-  price: number | null;
+  price_ils: number | null;
   bedrooms: number | null;
-  area_sqm: number | null;
+  sqm: number | null;
   neighborhood: string | null;
-  photos: string[];
-  is_stale: boolean;
-  geo_enrichment: unknown;
-  last_seen_at: string;
+  image_urls: string[];
+  amenities: unknown;
+  scraped_at: string | null;
+  is_agency: boolean | null;
 };
 
 export type RankedListing = ListingRow & { match_explanation: string };
@@ -25,11 +25,11 @@ export type TenantProfile = {
 
 export function hardFilter(listings: ListingRow[], profile: TenantProfile): ListingRow[] {
   return listings.filter((listing) => {
-    if (profile.budget_max != null && listing.price != null) {
-      if (listing.price > profile.budget_max) return false;
+    if (profile.budget_max != null && listing.price_ils != null) {
+      if (listing.price_ils > profile.budget_max) return false;
     }
     if (profile.bedrooms != null && listing.bedrooms != null) {
-      if (listing.bedrooms !== profile.bedrooms) return false;
+      if (Number(listing.bedrooms) !== profile.bedrooms) return false;
     }
     if (profile.neighborhoods && profile.neighborhoods.length > 0 && listing.neighborhood != null) {
       if (!profile.neighborhoods.includes(listing.neighborhood)) return false;
@@ -58,9 +58,9 @@ export async function rankWithAI(
 
   const summaries = listings.map((l) => ({
     id: l.id,
-    price: l.price,
+    price: l.price_ils,
     bedrooms: l.bedrooms,
-    area_sqm: l.area_sqm,
+    area_sqm: l.sqm,
     neighborhood: l.neighborhood,
     title: l.title,
   }));

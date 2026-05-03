@@ -7,11 +7,11 @@ vi.mock("~/lib/session", () => ({
 }));
 
 vi.mock("~/lib/supabase.server", () => ({
-  createSupabaseServer: vi.fn(),
+  createSupabaseServiceServer: vi.fn(),
 }));
 
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { loader } from "./saved";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -41,16 +41,16 @@ function makeSupabaseMock(
 
 const MOCK_LISTING = {
   id: "listing-1",
-  source_url: "https://yad2.co.il/item/1",
+  external_url: "https://yad2.co.il/item/1",
   title: "Nice apartment",
-  price: 6000,
+  price_ils: 6000,
   bedrooms: 2,
-  area_sqm: 65,
+  sqm: 65,
   neighborhood: "Florentin",
-  photos: ["https://example.com/photo.jpg"],
-  is_stale: false,
-  geo_enrichment: null,
-  last_seen_at: "2026-05-01T10:00:00Z",
+  image_urls: ["https://example.com/photo.jpg"],
+  is_agency: false,
+  amenities: null,
+  scraped_at: "2026-05-01T10:00:00Z",
 };
 
 beforeEach(() => {
@@ -71,7 +71,7 @@ describe("loader", () => {
   it("returns empty savedListings when user has no saves", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
     const { supabase } = makeSupabaseMock([], []);
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
     expect(result.savedListings).toEqual([]);
@@ -83,37 +83,37 @@ describe("loader", () => {
       [{ listing_id: "listing-1" }],
       [MOCK_LISTING]
     );
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
     expect(result.savedListings).toHaveLength(1);
     expect(result.savedListings[0].id).toBe("listing-1");
-    expect(result.savedListings[0].price).toBe(6000);
+    expect(result.savedListings[0].price_ils).toBe(6000);
     expect(result.savedListings[0].neighborhood).toBe("Florentin");
   });
 
-  it("includes stale listings without removing them", async () => {
+  it("includes agency listings without removing them", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
-    const stale = { ...MOCK_LISTING, id: "listing-2", is_stale: true };
+    const agency = { ...MOCK_LISTING, id: "listing-2", is_agency: true };
     const { supabase } = makeSupabaseMock(
       [{ listing_id: "listing-2" }],
-      [stale]
+      [agency]
     );
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
     expect(result.savedListings).toHaveLength(1);
-    expect(result.savedListings[0].is_stale).toBe(true);
+    expect(result.savedListings[0].is_agency).toBe(true);
   });
 
   it("returns multiple saved listings", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
-    const listing2 = { ...MOCK_LISTING, id: "listing-2", price: 7000 };
+    const listing2 = { ...MOCK_LISTING, id: "listing-2", price_ils: 7000 };
     const { supabase } = makeSupabaseMock(
       [{ listing_id: "listing-1" }, { listing_id: "listing-2" }],
       [MOCK_LISTING, listing2]
     );
-    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
 
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
     expect(result.savedListings).toHaveLength(2);
