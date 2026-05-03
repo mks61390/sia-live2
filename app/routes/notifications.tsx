@@ -1,4 +1,4 @@
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { Form, Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/notifications";
 import { getSupabaseUserId } from "~/lib/session";
@@ -135,9 +135,16 @@ export default function Notifications() {
           <Link to="/browse" className="text-2xl font-bold tracking-tight">
             Olim
           </Link>
-          <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-            ← Browse results
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+              ← Browse results
+            </Link>
+            <Form method="post" action="/api/logout">
+              <button type="submit" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Log out
+              </button>
+            </Form>
+          </div>
         </div>
 
         <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { Form, Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/browse";
 import { getSupabaseUserId } from "~/lib/session";
@@ -215,6 +215,11 @@ export default function Browse() {
             <Link to="/interview" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
               Refine preferences
             </Link>
+            <Form method="post" action="/api/logout">
+              <button type="submit" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Log out
+              </button>
+            </Form>
           </div>
         </div>
 
