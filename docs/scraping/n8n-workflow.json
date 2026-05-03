@@ -1,0 +1,155 @@
+{
+  "name": "Yad2 Scraping Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/{{$env.APIFY_ACTOR_ID}}/runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "searchUrl",
+              "value": "https://www.yad2.co.il/realestate/rent?city=5000&rooms=-1-6&price=2000-30000"
+            },
+            {
+              "name": "maxItems",
+              "value": "500"
+            }
+          ]
+        }
+      },
+      "id": "start-actor-run",
+      "name": "Start Apify Actor Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Apify API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 300,
+        "unit": "seconds"
+      },
+      "id": "wait-for-run",
+      "name": "Wait 5 min (actor runs)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/datasets/{{$node[\"Start Apify Actor Run\"].json.data.defaultDatasetId}}/items?format=json&clean=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "id": "fetch-dataset",
+      "name": "Fetch Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Apify API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// The HTTP node returns the full array as a single item.\nconst raw = items[0].json;\nconst listings = Array.isArray(raw) ? raw : [raw];\n\nconst mapped = listings.map(item => ({\n  source: 'yad2',\n  source_id: String(item.id ?? item.adNumber ?? item.itemId),\n  source_url: item.url ?? item.link ?? '',\n  title: item.title ?? item.headline ?? '',\n  description: item.description ?? item.contactName ?? null,\n  price: item.price ? Number(item.price) : null,\n  bedrooms: item.rooms ? Number(item.rooms) : null,\n  area_sqm: item.squareMeter ? Number(item.squareMeter) : null,\n  lat: item.coordinates?.lat ? Number(item.coordinates.lat) : null,\n  lng: item.coordinates?.lng ? Number(item.coordinates.lng) : null,\n  neighborhood: item.neighborhood ?? item.area ?? null,\n  photos: Array.isArray(item.images) ? item.images.filter(u => typeof u === 'string') : [],\n  published_at: item.publishedAt ?? item.date ?? null,\n}));\n\n// Filter out rows with no source_id or source_url\nconst valid = mapped.filter(l => l.source_id && l.source_url);\n\nreturn [{ json: valid }];"
+      },
+      "id": "transform-listings",
+      "name": "Transform to Listings Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.APP_BASE_URL}}/api/listings-ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.LISTINGS_INGEST_SECRET}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json)}}"
+      },
+      "id": "upsert-listings",
+      "name": "Upsert Listings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Start Apify Actor Run", "type": "main", "index": 0 }]]
+    },
+    "Start Apify Actor Run": {
+      "main": [[{ "node": "Wait 5 min (actor runs)", "type": "main", "index": 0 }]]
+    },
+    "Wait 5 min (actor runs)": {
+      "main": [[{ "node": "Fetch Dataset Items", "type": "main", "index": 0 }]]
+    },
+    "Fetch Dataset Items": {
+      "main": [[{ "node": "Transform to Listings Schema", "type": "main", "index": 0 }]]
+    },
+    "Transform to Listings Schema": {
+      "main": [[{ "node": "Upsert Listings", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  }
+}
