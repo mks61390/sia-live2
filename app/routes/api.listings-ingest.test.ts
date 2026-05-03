@@ -4,6 +4,13 @@ vi.mock("~/lib/supabase.server", () => ({
   createSupabaseServiceServer: vi.fn(),
 }));
 
+const { mockEnrichPendingListings } = vi.hoisted(() => ({
+  mockEnrichPendingListings: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("~/lib/geoEnrichment", () => ({
+  enrichPendingListings: mockEnrichPendingListings,
+}));
+
 import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { action } from "./api.listings-ingest";
 
@@ -132,6 +139,45 @@ describe("POST /api/listings-ingest", () => {
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toMatch(/DB error/i);
+  });
+
+  it("triggers enrichPendingListings for listings that have lat and lng", async () => {
+    const { supabase } = makeSupabaseMock();
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
+    mockEnrichPendingListings.mockResolvedValueOnce(undefined);
+
+    const listing = { ...VALID_LISTING, lat: 32.08, lng: 34.78 };
+    const res = await action(makeArgs({ body: [listing] }) as Parameters<typeof action>[0]);
+    expect(res.status).toBe(200);
+
+    // Give the fire-and-forget a tick to start
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockEnrichPendingListings).toHaveBeenCalledWith(
+      supabase,
+      expect.arrayContaining([
+        expect.objectContaining({ source: "yad2", source_id: "abc123", lat: 32.08, lng: 34.78 }),
+      ])
+    );
+  });
+
+  it("does not call enrichPendingListings for listings without lat/lng", async () => {
+    const { supabase } = makeSupabaseMock();
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
+
+    // VALID_LISTING has no lat/lng
+    await action(makeArgs({ body: [VALID_LISTING] }) as Parameters<typeof action>[0]);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockEnrichPendingListings).not.toHaveBeenCalled();
+  });
+
+  it("returns 200 even when enrichPendingListings rejects", async () => {
+    const { supabase } = makeSupabaseMock();
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
+    mockEnrichPendingListings.mockRejectedValueOnce(new Error("Foursquare down"));
+
+    const listing = { ...VALID_LISTING, lat: 32.08, lng: 34.78 };
+    const res = await action(makeArgs({ body: [listing] }) as Parameters<typeof action>[0]);
+    expect(res.status).toBe(200);
   });
 
   it("accepts a batch of multiple listings", async () => {

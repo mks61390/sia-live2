@@ -1,5 +1,6 @@
 import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { validateListingPayload, type ListingPayload } from "~/lib/listingsIngest";
+import { enrichPendingListings } from "~/lib/geoEnrichment";
 
 export async function action({ request }: { request: Request }) {
   // Auth
@@ -59,6 +60,16 @@ export async function action({ request }: { request: Request }) {
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
+  }
+
+  const candidates = (body as ListingPayload[]).filter(
+    (l): l is ListingPayload & { lat: number; lng: number } =>
+      l.lat != null && l.lng != null
+  );
+  if (candidates.length > 0) {
+    enrichPendingListings(supabase, candidates).catch((err) => {
+      console.error("[geo-enrichment]", err);
+    });
   }
 
   return Response.json({ upserted: rows.length }, { status: 200 });
