@@ -7,9 +7,22 @@ import {
   ScrollRestoration,
   useNavigation,
 } from "react-router";
+import posthog from "posthog-js";
+import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+
+function PostHogProvider() {
+  useEffect(() => {
+    const key = import.meta.env.VITE_POSTHOG_KEY;
+    const host = import.meta.env.VITE_POSTHOG_HOST ?? "https://us.i.posthog.com";
+    if (key) {
+      posthog.init(key, { api_host: host, person_profiles: "identified_only" });
+    }
+  }, []);
+  return null;
+}
 
 const darkModeScript = `
 (function() {
@@ -72,6 +85,7 @@ function NavigationLoadingBar() {
 export default function App() {
   return (
     <>
+      <PostHogProvider />
       <NavigationLoadingBar />
       <Outlet />
     </>
