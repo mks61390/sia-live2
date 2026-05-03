@@ -46,3 +46,55 @@ export async function setDevCountry(request: Request, country: string | null) {
   }
   return sessionStorage.commitSession(session);
 }
+
+export async function getSupabaseUserId(request: Request): Promise<string | null> {
+  const session = await getSession(request);
+  const userId = session.get("sbUserId");
+  return typeof userId === "string" ? userId : null;
+}
+
+export async function setSupabaseSession(
+  request: Request,
+  userId: string,
+  accessToken: string,
+  refreshToken: string
+): Promise<string> {
+  const session = await getSession(request);
+  session.set("sbUserId", userId);
+  session.set("sbAccessToken", accessToken);
+  session.set("sbRefreshToken", refreshToken);
+  return sessionStorage.commitSession(session);
+}
+
+export async function clearSupabaseSession(request: Request): Promise<string> {
+  const session = await getSession(request);
+  session.unset("sbUserId");
+  session.unset("sbAccessToken");
+  session.unset("sbRefreshToken");
+  return sessionStorage.commitSession(session);
+}
+
+export async function setOAuthCodeVerifier(
+  request: Request,
+  codeVerifier: string
+): Promise<string> {
+  const session = await getSession(request);
+  session.set("oauthCodeVerifier", codeVerifier);
+  return sessionStorage.commitSession(session);
+}
+
+export async function getOAuthCodeVerifier(
+  request: Request
+): Promise<string | null> {
+  const session = await getSession(request);
+  const v = session.get("oauthCodeVerifier");
+  return typeof v === "string" ? v : null;
+}
+
+export async function clearOAuthCodeVerifier(
+  request: Request
+): Promise<string> {
+  const session = await getSession(request);
+  session.unset("oauthCodeVerifier");
+  return sessionStorage.commitSession(session);
+}

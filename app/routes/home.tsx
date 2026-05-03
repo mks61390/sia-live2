@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/home";
-import { getCurrentUserId } from "~/lib/session";
+import { getSupabaseUserId } from "~/lib/session";
 import { Button } from "~/components/ui/button";
 import { Mic, BellRing, Sparkles } from "lucide-react";
 
@@ -17,7 +17,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const userId = await getCurrentUserId(request);
+  const userId = await getSupabaseUserId(request);
   if (userId !== null) {
     throw redirect("/browse");
   }

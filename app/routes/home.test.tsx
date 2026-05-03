@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("~/lib/session", () => ({
-  getCurrentUserId: vi.fn(),
+  getSupabaseUserId: vi.fn(),
 }));
 
-import { getCurrentUserId } from "~/lib/session";
+import { getSupabaseUserId } from "~/lib/session";
 import { loader } from "./home";
 
 const makeLoaderArgs = () =>
@@ -16,7 +16,7 @@ describe("home loader", () => {
   });
 
   it("redirects authenticated users to /browse", async () => {
-    vi.mocked(getCurrentUserId).mockResolvedValue(1);
+    vi.mocked(getSupabaseUserId).mockResolvedValue("abc-123");
     let thrown: unknown;
     try {
       await loader(makeLoaderArgs());
@@ -30,7 +30,7 @@ describe("home loader", () => {
   });
 
   it("returns empty object for unauthenticated users", async () => {
-    vi.mocked(getCurrentUserId).mockResolvedValue(null);
+    vi.mocked(getSupabaseUserId).mockResolvedValue(null);
     const result = await loader(makeLoaderArgs());
     expect(result).toEqual({});
   });
