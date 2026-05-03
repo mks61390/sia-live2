@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { Link, useActionData, useNavigate, useNavigation } from "react-router";
+import { useActionData, useNavigate, useNavigation } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/preferences";
 import { getSupabaseUserId } from "~/lib/session";
@@ -142,7 +142,7 @@ export default function Preferences() {
 
   if (actionData?.confirmation) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center p-6">
         <div className="w-full max-w-lg text-center">
           <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
             <div className="mb-4 text-2xl">✨</div>
@@ -155,20 +155,49 @@ export default function Preferences() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center p-6">
       <div className="w-full max-w-lg">
         <div className="mb-8 text-center">
-          <Link to="/" className="text-2xl font-bold tracking-tight">
-            Olim
-          </Link>
-          <h1 className="mt-4 text-xl font-semibold">What are you looking for?</h1>
+          <h1 className="text-xl font-semibold">What are you looking for?</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Describe your ideal apartment — budget, location, size, lifestyle. Anything
-            helps.
+            Describe your ideal apartment — budget, location, size, lifestyle. Anything helps.
           </p>
         </div>
 
         <form method="post" className="space-y-4">
+          {/* Voice record button — prominent at the top */}
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              type="button"
+              variant={isRecording ? "destructive" : "default"}
+              size="lg"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isSubmitting || isTranscribing}
+              className="flex items-center gap-2"
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="size-5" />
+                  Stop recording
+                </>
+              ) : (
+                <>
+                  <Mic className="size-5" />
+                  Record your preferences
+                </>
+              )}
+            </Button>
+            {isRecording && (
+              <span className="text-sm text-muted-foreground animate-pulse">Recording…</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-xs text-muted-foreground">or type below</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+
           <div className="relative">
             <textarea
               ref={textareaRef}
@@ -189,34 +218,6 @@ export default function Preferences() {
           {transcribeError && (
             <p className="text-sm text-destructive">{transcribeError}</p>
           )}
-
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant={isRecording ? "destructive" : "outline"}
-              size="sm"
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isSubmitting || isTranscribing}
-              className="flex items-center gap-2"
-            >
-              {isRecording ? (
-                <>
-                  <MicOff className="size-4" />
-                  Stop recording
-                </>
-              ) : (
-                <>
-                  <Mic className="size-4" />
-                  Record instead
-                </>
-              )}
-            </Button>
-            {isRecording && (
-              <span className="text-sm text-muted-foreground animate-pulse">
-                Recording…
-              </span>
-            )}
-          </div>
 
           <Button
             type="submit"
