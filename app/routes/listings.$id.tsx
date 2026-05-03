@@ -2,7 +2,7 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/listings.$id";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import type { ListingRow } from "~/lib/matchingEngine";
 
 export function meta() {
@@ -13,7 +13,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   const { data } = await supabase
     .from("listings")
@@ -44,7 +44,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   if (intent === "save") {
     await supabase

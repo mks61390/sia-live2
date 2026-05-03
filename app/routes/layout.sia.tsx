@@ -2,13 +2,13 @@ import { Form, Link, Outlet, useLoaderData, useLocation } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/layout.sia";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   const [profileRes, unreadRes] = await Promise.all([
     supabase

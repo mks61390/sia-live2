@@ -2,7 +2,7 @@ import { Link, useLoaderData, useNavigation } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/interview";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { Button } from "~/components/ui/button";
 import { Loader2 } from "lucide-react";
 import {
@@ -23,7 +23,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
   const { data } = await supabase
     .from("tenant_profiles")
     .select("*")
@@ -73,7 +73,7 @@ export async function action({ request }: Route.ActionArgs) {
   const block = BLOCKS[blockIndex];
   if (!block) throw redirect("/browse");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
   const { data } = await supabase
     .from("tenant_profiles")
     .select("*")

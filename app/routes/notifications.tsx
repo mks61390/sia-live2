@@ -2,7 +2,7 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/notifications";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 
 export function meta() {
   return [{ title: "Notifications — Olim" }];
@@ -29,7 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   const { data } = await supabase
     .from("notifications")
@@ -46,7 +46,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
   const now = new Date().toISOString();
 
   if (intent === "mark_read") {

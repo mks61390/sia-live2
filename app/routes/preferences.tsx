@@ -3,7 +3,7 @@ import { useActionData, useNavigate, useNavigation } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/preferences";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { extractPreferences } from "~/lib/preferenceExtraction";
 import { Button } from "~/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
@@ -16,7 +16,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
   const { data: profile } = await supabase
     .from("tenant_profiles")
     .select("completed_blocks, extracted_fields")
@@ -51,7 +51,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const extracted = await extractPreferences(text);
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
   await supabase.from("tenant_profiles").upsert({
     tenant_id: userId,
     raw_input: text,

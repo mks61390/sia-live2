@@ -2,7 +2,7 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/browse";
 import { getSupabaseUserId } from "~/lib/session";
-import { createSupabaseServer } from "~/lib/supabase.server";
+import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { hardFilter, rankWithAI, type RankedListing } from "~/lib/matchingEngine";
 
 export function meta() {
@@ -13,7 +13,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userId = await getSupabaseUserId(request);
   if (!userId) throw redirect("/login");
 
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   const { data: profileRows } = await supabase
     .from("tenant_profiles")
@@ -61,7 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const supabase = createSupabaseServer();
+  const supabase = createSupabaseServiceServer();
 
   if (intent === "save") {
     const listingId = formData.get("listing_id") as string;
