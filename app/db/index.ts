@@ -8,7 +8,7 @@ let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 function getDb() {
   if (!_db) {
-    const sqlite = new Database("data.db");
+    const sqlite = new Database("/tmp/data.db");
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("foreign_keys = ON");
     _db = drizzle(sqlite, { schema });
