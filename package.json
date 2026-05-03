@@ -15,7 +15,6 @@
     "loc": "git ls-files | grep -vE '(lock|.db|_snapshot.json)' | xargs wc -l"
   },
   "dependencies": {
-    "@google/genai": "^1.51.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@react-router/node": "7.12.0",

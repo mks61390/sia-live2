@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { getSupabaseUserId } from "~/lib/session";
 import type { Route } from "./+types/api.transcribe";
 
@@ -20,33 +20,18 @@ export async function action({ request }: Route.ActionArgs) {
     });
   }
 
-  const arrayBuffer = await audio.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
-  const mimeType = audio.type || "audio/webm";
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY ?? "" });
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? "" });
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            inlineData: { mimeType, data: base64 },
-          },
-          {
-            text: "Transcribe this audio recording exactly as spoken. Return only the transcript text, nothing else.",
-          },
-        ],
-      },
-    ],
+  const file = new File([audio], "recording.webm", {
+    type: audio.type || "audio/webm",
   });
 
-  const transcript =
-    response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const response = await openai.audio.transcriptions.create({
+    model: "whisper-1",
+    file,
+  });
 
-  return new Response(JSON.stringify({ transcript }), {
+  return new Response(JSON.stringify({ transcript: response.text }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
