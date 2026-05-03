@@ -197,6 +197,14 @@ export default function Interview() {
               />
             ))}
           </div>
+          <div className="mt-4">
+            <Link
+              to="/preferences"
+              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              ← Start over / re-record preferences
+            </Link>
+          </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
