@@ -1,4 +1,4 @@
-import { Link, useLoaderData } from "react-router";
+import { Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/listings.$id";
 import { getSupabaseUserId } from "~/lib/session";
@@ -14,6 +14,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!userId) throw redirect("/login");
 
   const supabase = createSupabaseServer();
+
   const { data } = await supabase
     .from("listings")
     .select("*")
@@ -22,7 +23,45 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!data) throw new Response("Not found", { status: 404 });
 
-  return { listing: data as ListingRow & { description: string | null; published_at: string | null } };
+  const { data: savedRows } = await supabase
+    .from("saved_listings")
+    .select("listing_id")
+    .eq("tenant_id", userId);
+
+  const isSaved = (savedRows ?? []).some(
+    (r: { listing_id: string }) => r.listing_id === params.id
+  );
+
+  return {
+    listing: data as ListingRow & { description: string | null; published_at: string | null },
+    isSaved,
+  };
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const userId = await getSupabaseUserId(request);
+  if (!userId) throw redirect("/login");
+
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string;
+  const supabase = createSupabaseServer();
+
+  if (intent === "save") {
+    await supabase
+      .from("saved_listings")
+      .upsert({ tenant_id: userId, listing_id: params.id });
+    return Response.json({ ok: true });
+  }
+
+  if (intent === "unsave") {
+    await supabase
+      .from("saved_listings")
+      .delete()
+      .match({ tenant_id: userId, listing_id: params.id });
+    return Response.json({ ok: true });
+  }
+
+  return Response.json({ ok: false });
 }
 
 type AmenityItem = { name: string; distance: number };
@@ -59,8 +98,14 @@ function formatDate(iso: string) {
 }
 
 export default function ListingDetail() {
-  const { listing } = useLoaderData<typeof loader>();
+  const { listing, isSaved } = useLoaderData<typeof loader>();
   const geo = listing.geo_enrichment as unknown as GeoEnrichment | null;
+  const fetcher = useFetcher();
+
+  const optimisticSaved =
+    fetcher.state !== "idle"
+      ? fetcher.formData?.get("intent") === "save"
+      : isSaved;
 
   const amenityKeys = Object.keys(AMENITY_LABELS) as Array<keyof GeoEnrichment>;
   const hasAmenities = geo != null && amenityKeys.some((k) => (geo[k]?.length ?? 0) > 0);
@@ -176,12 +221,16 @@ export default function ListingDetail() {
           >
             View on Yad2
           </a>
-          <button
-            type="button"
-            className="flex-1 rounded-lg border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            Save listing
-          </button>
+          <fetcher.Form method="post" className="flex-1">
+            <button
+              type="submit"
+              name="intent"
+              value={optimisticSaved ? "unsave" : "save"}
+              className="w-full rounded-lg border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              {optimisticSaved ? "Saved ✓" : "Save listing"}
+            </button>
+          </fetcher.Form>
         </div>
       </div>
     </div>

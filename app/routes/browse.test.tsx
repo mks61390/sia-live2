@@ -43,34 +43,41 @@ function makeArgs(options: { method?: string; body?: Record<string, string> } = 
   return { request: makeRequest(options), params: {}, context: {} };
 }
 
-function makeProfileMock(profile: Record<string, unknown> | null) {
-  const selectEq = vi.fn().mockResolvedValue({ data: profile ? [profile] : [], error: null });
-  const selectFn = vi.fn().mockReturnValue({ eq: selectEq });
-  const upsertFn = vi.fn().mockResolvedValue({ error: null });
-  const fromMock = vi.fn().mockImplementation((table: string) => {
-    if (table === "tenant_profiles") return { select: selectFn, upsert: upsertFn };
-    if (table === "listings") return { select: { eq: vi.fn().mockResolvedValue({ data: [], error: null }) } };
-    return {};
-  });
-  return { supabase: { from: fromMock }, upsertFn };
-}
-
 function makeSupabaseMock(
   profile: Record<string, unknown> | null,
-  listings: unknown[] = []
+  listings: unknown[] = [],
+  savedIds: Array<{ listing_id: string }> = []
 ) {
   const profileSelectEq = vi.fn().mockResolvedValue({ data: profile ? [profile] : [], error: null });
   const profileSelectFn = vi.fn().mockReturnValue({ eq: profileSelectEq });
   const listingsSelectFn = vi.fn().mockResolvedValue({ data: listings, error: null });
+  const savedEqFn = vi.fn().mockResolvedValue({ data: savedIds, error: null });
+  const savedSelectFn = vi.fn().mockReturnValue({ eq: savedEqFn });
   const upsertFn = vi.fn().mockResolvedValue({ error: null });
 
   const fromMock = vi.fn().mockImplementation((table: string) => {
     if (table === "tenant_profiles") return { select: profileSelectFn, upsert: upsertFn };
     if (table === "listings") return { select: listingsSelectFn };
+    if (table === "saved_listings") return { select: savedSelectFn };
     return {};
   });
 
   return { supabase: { from: fromMock }, upsertFn };
+}
+
+function makeSavedActionMock() {
+  const savedUpsertFn = vi.fn().mockResolvedValue({ error: null });
+  const savedDeleteMatchFn = vi.fn().mockResolvedValue({ error: null });
+  const savedDeleteFn = vi.fn().mockReturnValue({ match: savedDeleteMatchFn });
+  const profileUpsertFn = vi.fn().mockResolvedValue({ error: null });
+
+  const fromMock = vi.fn().mockImplementation((table: string) => {
+    if (table === "tenant_profiles") return { upsert: profileUpsertFn };
+    if (table === "saved_listings") return { upsert: savedUpsertFn, delete: savedDeleteFn };
+    return {};
+  });
+
+  return { supabase: { from: fromMock }, savedUpsertFn, savedDeleteMatchFn };
 }
 
 beforeEach(() => {
@@ -169,6 +176,27 @@ describe("loader", () => {
     const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
     expect(result.alertEnabled).toBe(true);
   });
+
+  it("returns savedIds from saved_listings", async () => {
+    vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
+    const profile = { tenant_id: "user-1", completed_blocks: 1, alert_enabled: false };
+    const savedIds = [{ listing_id: "l1" }, { listing_id: "l2" }];
+    const { supabase } = makeSupabaseMock(profile, [], savedIds);
+    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+
+    const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
+    expect(result.savedIds).toEqual(["l1", "l2"]);
+  });
+
+  it("returns empty savedIds when user has no saves", async () => {
+    vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
+    const profile = { tenant_id: "user-1", completed_blocks: 1, alert_enabled: false };
+    const { supabase } = makeSupabaseMock(profile, [], []);
+    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+
+    const result = await loader(makeArgs() as Parameters<typeof loader>[0]);
+    expect(result.savedIds).toEqual([]);
+  });
 });
 
 // ── action ────────────────────────────────────────────────────────────────────
@@ -184,7 +212,7 @@ describe("action", () => {
 
   it("saves alert_enabled=true and returns ok", async () => {
     vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
-    const { supabase, upsertFn } = makeProfileMock({ tenant_id: "user-1", completed_blocks: 1 });
+    const { supabase } = makeSavedActionMock();
     vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
 
     const result = await action(
@@ -192,8 +220,35 @@ describe("action", () => {
     );
     const json = await (result as Response).json();
     expect(json.ok).toBe(true);
-    expect(upsertFn).toHaveBeenCalledWith(
-      expect.objectContaining({ tenant_id: "user-1", alert_enabled: true })
+  });
+
+  it("saves listing and returns ok when intent=save", async () => {
+    vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
+    const { supabase, savedUpsertFn } = makeSavedActionMock();
+    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+
+    const result = await action(
+      makeArgs({ method: "POST", body: { intent: "save", listing_id: "l1" } }) as Parameters<typeof action>[0]
+    );
+    const json = await (result as Response).json();
+    expect(json.ok).toBe(true);
+    expect(savedUpsertFn).toHaveBeenCalledWith(
+      expect.objectContaining({ tenant_id: "user-1", listing_id: "l1" })
+    );
+  });
+
+  it("removes listing from saved_listings when intent=unsave", async () => {
+    vi.mocked(getSupabaseUserId).mockResolvedValue("user-1");
+    const { supabase, savedDeleteMatchFn } = makeSavedActionMock();
+    vi.mocked(createSupabaseServer).mockReturnValue(supabase as never);
+
+    const result = await action(
+      makeArgs({ method: "POST", body: { intent: "unsave", listing_id: "l1" } }) as Parameters<typeof action>[0]
+    );
+    const json = await (result as Response).json();
+    expect(json.ok).toBe(true);
+    expect(savedDeleteMatchFn).toHaveBeenCalledWith(
+      expect.objectContaining({ tenant_id: "user-1", listing_id: "l1" })
     );
   });
 });

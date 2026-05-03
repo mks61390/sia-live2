@@ -51,6 +51,7 @@ export default [
   route("interview", "routes/interview.tsx"),
   route("browse", "routes/browse.tsx"),
   route("listings/:id", "routes/listings.$id.tsx"),
+  route("saved", "routes/saved.tsx"),
   route("api/transcribe", "routes/api.transcribe.ts"),
   route("api/switch-user", "routes/api.switch-user.ts"),
   route("api/logout", "routes/api.logout.ts"),
