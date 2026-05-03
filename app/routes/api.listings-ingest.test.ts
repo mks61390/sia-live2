@@ -4,11 +4,15 @@ vi.mock("~/lib/supabase.server", () => ({
   createSupabaseServiceServer: vi.fn(),
 }));
 
-const { mockEnrichPendingListings } = vi.hoisted(() => ({
+const { mockEnrichPendingListings, mockEvaluateAlerts } = vi.hoisted(() => ({
   mockEnrichPendingListings: vi.fn().mockResolvedValue(undefined),
+  mockEvaluateAlerts: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("~/lib/geoEnrichment", () => ({
   enrichPendingListings: mockEnrichPendingListings,
+}));
+vi.mock("~/lib/alertEngine", () => ({
+  evaluateAlerts: mockEvaluateAlerts,
 }));
 
 import { createSupabaseServiceServer } from "~/lib/supabase.server";
@@ -195,5 +199,31 @@ describe("POST /api/listings-ingest", () => {
 
     const [rows] = upsertMock.mock.calls[0] as [Array<unknown>];
     expect(rows).toHaveLength(2);
+  });
+
+  it("triggers evaluateAlerts for all ingested listings", async () => {
+    const { supabase } = makeSupabaseMock();
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
+    mockEvaluateAlerts.mockResolvedValueOnce(undefined);
+
+    const res = await action(makeArgs({ body: [VALID_LISTING] }) as Parameters<typeof action>[0]);
+    expect(res.status).toBe(200);
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockEvaluateAlerts).toHaveBeenCalledWith(
+      supabase,
+      expect.arrayContaining([
+        expect.objectContaining({ source: "yad2", source_id: "abc123" }),
+      ])
+    );
+  });
+
+  it("returns 200 even when evaluateAlerts rejects", async () => {
+    const { supabase } = makeSupabaseMock();
+    vi.mocked(createSupabaseServiceServer).mockReturnValue(supabase as never);
+    mockEvaluateAlerts.mockRejectedValueOnce(new Error("Alert engine down"));
+
+    const res = await action(makeArgs({ body: [VALID_LISTING] }) as Parameters<typeof action>[0]);
+    expect(res.status).toBe(200);
   });
 });

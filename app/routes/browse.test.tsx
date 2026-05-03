@@ -46,7 +46,8 @@ function makeArgs(options: { method?: string; body?: Record<string, string> } = 
 function makeSupabaseMock(
   profile: Record<string, unknown> | null,
   listings: unknown[] = [],
-  savedIds: Array<{ listing_id: string }> = []
+  savedIds: Array<{ listing_id: string }> = [],
+  unreadNotifications: unknown[] = []
 ) {
   const profileSelectEq = vi.fn().mockResolvedValue({ data: profile ? [profile] : [], error: null });
   const profileSelectFn = vi.fn().mockReturnValue({ eq: profileSelectEq });
@@ -54,11 +55,15 @@ function makeSupabaseMock(
   const savedEqFn = vi.fn().mockResolvedValue({ data: savedIds, error: null });
   const savedSelectFn = vi.fn().mockReturnValue({ eq: savedEqFn });
   const upsertFn = vi.fn().mockResolvedValue({ error: null });
+  const notifIsNullFn = vi.fn().mockResolvedValue({ data: unreadNotifications, error: null });
+  const notifEqFn = vi.fn().mockReturnValue({ is: notifIsNullFn });
+  const notifSelectFn = vi.fn().mockReturnValue({ eq: notifEqFn });
 
   const fromMock = vi.fn().mockImplementation((table: string) => {
     if (table === "tenant_profiles") return { select: profileSelectFn, upsert: upsertFn };
     if (table === "listings") return { select: listingsSelectFn };
     if (table === "saved_listings") return { select: savedSelectFn };
+    if (table === "notifications") return { select: notifSelectFn };
     return {};
   });
 

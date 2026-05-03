@@ -1,6 +1,8 @@
 import { createSupabaseServiceServer } from "~/lib/supabase.server";
 import { validateListingPayload, type ListingPayload } from "~/lib/listingsIngest";
 import { enrichPendingListings } from "~/lib/geoEnrichment";
+import { evaluateAlerts } from "~/lib/alertEngine";
+import type { ListingRow } from "~/lib/matchingEngine";
 
 export async function action({ request }: { request: Request }) {
   // Auth
@@ -71,6 +73,11 @@ export async function action({ request }: { request: Request }) {
       console.error("[geo-enrichment]", err);
     });
   }
+
+  // Fire-and-forget alert evaluation for all ingested listings
+  evaluateAlerts(supabase, rows as unknown as ListingRow[]).catch((err) => {
+    console.error("[alert-engine]", err);
+  });
 
   return Response.json({ upserted: rows.length }, { status: 200 });
 }
