@@ -59,24 +59,35 @@ export async function extractPreferences(
 
   try {
     const parsed = JSON.parse(raw) as ExtractedPreferences;
+
+    const budget_max = parsed.budget_max ?? null;
+    const bedrooms = parsed.bedrooms ?? null;
+    const move_in_date = parsed.move_in_date ?? null;
+    const neighborhoods = Array.isArray(parsed.neighborhoods) ? parsed.neighborhoods : [];
+    const lifestyle_signals =
+      parsed.lifestyle_signals && typeof parsed.lifestyle_signals === "object"
+        ? parsed.lifestyle_signals
+        : {};
+
+    // Derive extracted_fields from actual values — don't trust GPT to self-report
+    const extracted_fields: string[] = [];
+    if (budget_max !== null) extracted_fields.push("budget_max");
+    if (bedrooms !== null) extracted_fields.push("bedrooms");
+    if (move_in_date !== null) extracted_fields.push("move_in_date");
+    if (neighborhoods.length > 0) extracted_fields.push("neighborhoods");
+    for (const key of Object.keys(lifestyle_signals)) {
+      extracted_fields.push(`lifestyle_signals.${key}`);
+    }
+
     return {
-      budget_max: parsed.budget_max ?? null,
-      bedrooms: parsed.bedrooms ?? null,
-      move_in_date: parsed.move_in_date ?? null,
-      neighborhoods: Array.isArray(parsed.neighborhoods)
-        ? parsed.neighborhoods
-        : [],
-      lifestyle_signals:
-        parsed.lifestyle_signals &&
-        typeof parsed.lifestyle_signals === "object"
-          ? parsed.lifestyle_signals
-          : {},
-      extracted_fields: Array.isArray(parsed.extracted_fields)
-        ? parsed.extracted_fields
-        : [],
+      budget_max,
+      bedrooms,
+      move_in_date,
+      neighborhoods,
+      lifestyle_signals,
+      extracted_fields,
       confirmation_message:
-        typeof parsed.confirmation_message === "string" &&
-        parsed.confirmation_message.trim()
+        typeof parsed.confirmation_message === "string" && parsed.confirmation_message.trim()
           ? parsed.confirmation_message
           : EMPTY_RESULT.confirmation_message,
     };

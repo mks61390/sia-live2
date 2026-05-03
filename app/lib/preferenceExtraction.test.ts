@@ -82,7 +82,7 @@ describe("extractPreferences", () => {
       "bedrooms",
       "move_in_date",
       "neighborhoods",
-      "lifestyle_signals",
+      "lifestyle_signals.pets",
     ]);
   });
 
