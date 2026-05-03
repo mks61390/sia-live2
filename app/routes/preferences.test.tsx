@@ -36,7 +36,7 @@ function makeSupabaseMock({
   upsertError?: { message: string } | null;
 } = {}) {
   const upsertMock = vi.fn().mockResolvedValue({ error: upsertError });
-  const eqMock = vi.fn().mockResolvedValue({ data: profile, error: null });
+  const eqMock = vi.fn().mockResolvedValue({ data: profile ? [profile] : [], error: null });
   const selectMock = vi.fn().mockReturnValue({ eq: eqMock });
   const fromMock = vi.fn().mockImplementation((table: string) => {
     if (table === "tenant_profiles") {
