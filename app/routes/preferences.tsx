@@ -54,6 +54,7 @@ export async function action({ request }: Route.ActionArgs) {
   const supabase = createSupabaseServer();
   await supabase.from("tenant_profiles").upsert({
     tenant_id: userId,
+    raw_input: text,
     budget_max: extracted.budget_max,
     bedrooms: extracted.bedrooms,
     move_in_date: extracted.move_in_date,
