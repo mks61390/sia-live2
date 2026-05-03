@@ -1,4 +1,4 @@
-import { Form, Link, useFetcher, useLoaderData } from "react-router";
+import { Link, useFetcher, useLoaderData } from "react-router";
 import { redirect } from "react-router";
 import type { Route } from "./+types/browse";
 import { getSupabaseUserId } from "~/lib/session";
@@ -45,12 +45,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     lifestyle_signals: (profile?.lifestyle_signals as Record<string, unknown>) ?? {},
   };
 
-  const { data: unreadRows } = await supabase
-    .from("notifications")
-    .select("id")
-    .eq("tenant_id", userId)
-    .is("read_at", null);
-
   const filtered = hardFilter(allListings, tenantProfile);
   const rankedListings = await rankWithAI(filtered, tenantProfile);
 
@@ -58,7 +52,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     rankedListings,
     alertEnabled: (profile?.alert_enabled as boolean) ?? false,
     savedIds,
-    unreadCount: (unreadRows ?? []).length,
   };
 }
 
@@ -187,41 +180,12 @@ function AlertBanner() {
 }
 
 export default function Browse() {
-  const { rankedListings, alertEnabled, savedIds, unreadCount } = useLoaderData<typeof loader>();
+  const { rankedListings, alertEnabled, savedIds } = useLoaderData<typeof loader>();
   const savedSet = new Set(savedIds);
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    <div className="px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold tracking-tight">
-            Olim
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              to="/notifications"
-              className="relative text-sm text-muted-foreground hover:text-foreground hover:underline"
-            >
-              Notifications
-              {unreadCount > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-medium text-primary-foreground">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-            <Link to="/saved" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-              Saved
-            </Link>
-            <Link to="/interview" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-              Refine preferences
-            </Link>
-            <Form method="post" action="/api/logout">
-              <button type="submit" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Log out
-              </button>
-            </Form>
-          </div>
-        </div>
 
         {!alertEnabled && <AlertBanner />}
 

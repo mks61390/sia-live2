@@ -177,12 +177,9 @@ export default function Interview() {
   const isLastBlock = currentBlockIndex === BLOCKS.length - 1;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center p-6">
       <div className="w-full max-w-lg">
         <div className="mb-6 text-center">
-          <Link to="/" className="text-2xl font-bold tracking-tight">
-            Olim
-          </Link>
           <p className="mt-2 text-sm text-muted-foreground">
             Block {currentBlockIndex + 1} of {BLOCKS.length}
           </p>

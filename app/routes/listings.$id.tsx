@@ -111,15 +111,8 @@ export default function ListingDetail() {
   const hasAmenities = geo != null && amenityKeys.some((k) => (geo[k]?.length ?? 0) > 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Nav */}
-      <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-        <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-          ← Back to results
-        </Link>
-      </div>
-
-      <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 sm:px-6">
+    <div>
+      <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 pt-6 sm:px-6">
 
         {/* Stale warning */}
         {listing.is_stale && (
